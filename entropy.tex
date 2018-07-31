@@ -1,0 +1,16 @@
+\section{Entropy collection}
+\label{entropy}
+
+When a validator creates a new account, it is important that they not be able to predict its ticket scores. Otherwise, a validator could enumerate possible key pairs until they eventually find one with high-scoring tickets. To prevent such ``grinding'' attacks, we use a new random seed in each epoch. A validator account created in epoch $i$ cannot submit tickets until epoch $i + 2$, so there is a full round of entropy generation in epoch $i + 1$ before the account becomes eligible.
+
+The random seed for each epoch is derived from the signatures of block creators. In particular, each block creator submits $\operatorname{R}(\mathrm{sk}, h)$ as their entropy contribution, where $R$ is a pseudorandom function, sk is their secret key and $h$ is the height of the block. This is one of the outputs of the NIZKP given by each block creator, which is described in \autoref{block-creation-circuit}.
+
+At the end of each epoch, these entropy submissions are xor'd together, and the resulting number becomes the random seed of the following epoch.
+
+Since this computation is deterministic, the only way for a validator to influence entropy is to skip their block. Consider the validator $\nu$ who is eligible to create the last $n$ blocks in some epoch $i$. (Typically $n = 1$, but $\nu$ could get lucky and have several contiguous blocks at the end of the epoch.) $\nu$ may manipulate $n$ bits of entropy by creating or withholding blocks. In other words, $\nu$ can choose from $2^n$ random seeds for epoch $i + 1$. If they do withhold blocks, they will miss out on the block reward, but it may occasionally be profitable if it results in a more favorable random seed for the next epoch.
+
+[TODO: Need some analysis to show that manipulation is rarely profitable, and that there's negligible effect on the equitable distribution of block rewards.]
+
+[RANDAO is reasonable alternative---we can slash validators who withhold their entropy contribution rather just relying on the block reward as a minor incentive. However, I think the analysis will show that it's unnecessary; profitable manipulation will be rare either way.]
+
+[Also considering verifiable delay functions which can provide manipulation-proof entropy, but it may be best to wait for new developments in this very new field. \cite{wesolowski2018slow} seems practical, but relies on discrete log hardness.]

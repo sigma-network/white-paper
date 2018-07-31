@@ -1,0 +1,20 @@
+\section{Validator registration}
+\label{registration}
+
+% TODO: mention ability to submit registration messages from another account, to pay fees without invalidating the main account
+% registrations included in block headers
+% separate registrations limit for light clients
+
+In each epoch, validators may register to create blocks or vote in the following epoch. Since the process is similar for both, we describe a generic protocol for event registration.
+
+A validator may register for an event by submitting one or more \emph{tickets}. A validator with a stake of $s$ may submit up to $\floor{s / \mathtt{DepositAmount}}$ tickets per event, each with a unique index $i$.
+
+Each ticket has a score, which is computed as
+\[ R(x, \mathrm{sk}, e, i) \]
+where $R$ is a pseudorandom function, $x$ is the random seed of the current epoch, $\mathrm{sk}$ is the validator's secret key, $e$ is an event identifier, and $i$ is the ticket index.
+
+A registration message includes a non-interactive zero-knowledge proof (NIZKP) showing that a certain ticket was scored correctly. The event $e$ is a public input to the NIZKP, but $\mathrm{sk}$ and $i$ are private, so no account data is revealed. The details of the NIZKP circuit are covered in \autoref{registration-circuit}.
+
+At the end of an epoch, tickets are approved or denied based on their ranking. For block creation events, only one ticket is approved at each block height. For voting events, the top \texttt{MaxVoters} tickets are approved to vote in the next epoch.
+
+Since ticket scores are public, validators can often judge whether their ticket is likely to be approved based on the scores of any previously submitted tickets. Validators can save on transaction fees by not submitting tickets which are likely to be denied.

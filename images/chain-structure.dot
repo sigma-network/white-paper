@@ -1,0 +1,34 @@
+digraph G {
+  rankdir="RL";
+  margin=0;
+
+  "1a" [label="1", shape=doublecircle];
+  "2a" [label="2", shape=doublecircle];
+  "3c" [label="3", shape=circle];
+  "3a" [label="3", shape=doublecircle];
+  "3b" [label="3", shape=circle];
+  "4a" [label="4", shape=doublecircle];
+  "4b" [label="4", shape=circle];
+  "5a" [label="5", shape=doublecircle];
+  "6a" [label="6", shape=doublecircle];
+  "6b" [label="6", shape=circle];
+  "7a" [label="7", shape=doublecircle];
+
+  "2a" -> "1a";
+  "3a" -> "2a";
+  "3b" -> "2a" [constraint=false];
+  "3c" -> "2a" [constraint=false];
+  "4a" -> "3a";
+  "4b" -> "3a" [constraint=false];
+  "5a" -> "4a";
+  "6a" -> "5a";
+  "6b" -> "5a" [constraint=false];
+  "7a" -> "6a";
+
+  { "3a" "3b" "3c" rank=same; }
+  { "4a" "4b" rank=same; }
+  { "6a" "6b" rank=same; }
+  //{ "1a" "2a" "3a" "4a" "5a" "6a" "7a" rank=same; }
+  //{ "3b" "4b" "6b" rank=same; }
+  //{ "3c" rank=same; }
+}

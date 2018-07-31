@@ -1,0 +1,63 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{cite}
+\usepackage[margin=1.35in]{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{mathtools}
+\usepackage{thmtools}
+
+\title{Sigma Network}
+\author{Daniel Lubarov\\daniel@lubarov.com}
+\date{DRAFT Version 0.1\\\today}
+
+% Theorem definitions.
+\declaretheorem{theorem}
+\declaretheorem{lemma}
+
+% We want autorefs to say e.g. "section 8.1" rather than "subsection 8.1".
+\let\subsectionautorefname\sectionautorefname
+\let\subsubsectionautorefname\sectionautorefname
+
+% Integer interval notation; from https://tex.stackexchange.com/a/304670/99124
+\newcommand{\isep}{\mathrel{{.}\,{.}}\nobreak}
+
+% \floor{...}, \ceil{...}, \angled{...}.
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\DeclarePairedDelimiter{\angled}{\langle}{\rangle}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+  We introduce Sigma Network, a cryptocurrency protocol which provides strong privacy guarantees using zero knowledge proofs. In contrast to existing privacy-oriented protocols, our blockchain design is based on proof of stake, which opens the door to a number of improvements.
+
+  We introduce a novel, leaderless BFT consensus algorithm to quickly finalize each block, thereby eliminating forks. Under normal conditions, our algorithm achieves consensus after just two rounds of one-way communication. We prove the algorithm's safety under a 2/3 honest majority assumption, and prove its liveness under a partial synchrony assumption.
+
+  Our protocol is designed with the expectation that each validator node will be run by multiple servers. We divide blocks into small shards, and our peer discovery protocol matches peers with overlapping shard ranges. This allows transaction volume to scale without any practical limits.
+
+  To support users who lack the resources to process all transactions, we propose a unique light client model. Instead of verifying all transactions in a block, light clients verify that BFT consensus was achieved. Under our honest majority assumption, light clients enjoy the same security as full validator nodes, and since vote counts are not affected by transaction volume, this model allows the network to scale without increasing computational requirements for ordinary users.
+
+  While existing cryptocurrencies have generated a great deal of interest and investment, fiat currencies remain ubiquitous in day-to-day life. Sigma Network's unique combination of privacy, scalability and low latency make it a strong candidate for adoption in everyday commerce.
+\end{abstract}
+
+\newpage
+\tableofcontents
+\newpage
+
+\input{background}
+\input{protocol}
+\input{registration}
+\input{entropy}
+\input{consensus}
+\input{proofs}
+\input{sharding}
+\input{attacks}
+
+\bibliography{bibliography}{}
+\bibliographystyle{ieeetr}
+
+\end{document}

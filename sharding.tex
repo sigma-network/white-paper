@@ -1,0 +1,52 @@
+\section{Communication, sharding and light clients}
+\label{sharding}
+
+Most blockchain protocols were designed to be run by individual computers, which severely limits their capacity. With its current maximum block size of 1 megabyte, Bitcoin supports a theoretical maximum of 7 transactions per second. This is a far cry from global electronic payment volume; Visa's payment network, for example, has been stress tested with up to 47,000 transactions per second \cite{visa2013capacity}.
+
+Our protocol, on the other hand, is designed to be executed by a scalable cluster of machines. At the same time, we provide a strong security guarantee for light clients, so that users can safely send and receive payments with minimal computing resources.
+
+
+\subsection{Sharded block structure}
+
+Each block $b$ is broken up into $n$ shards: $b_1, b_2, ... b_n$. Validators are free to shard transactions in any manner they choose, as long as the size of each shard does not exceed a specified maximum.
+
+The mempool, which contains pending transactions and validator registrations, is also sharded. Regular transactions are sharded based on the nullifier of the first transaction being spent, and validator registrations are sharded based on the nullifier of the validator account. This scheme ensures that a single transaction cannot be added to multiple mempool shards, which helps mitigate mempool spam.
+
+When a newly started node is discovering peers, it advertises the range of shards that it processes and searches for peers with overlapping ranges. Nodes should ignore any peers whose shard ranges do not overlap with their own.
+
+
+\subsection{Suggested implementation strategy}
+
+Validators are free to use any implementation strategy. They could, for example, run a full node a single server, with a high-capacity network interface and many CPUs for parallel proof verification. However, the protocol design lends itself to the following suggested implementation.
+
+Consider a validator with $k + 1$ servers. One server is designated as the coordinator, while the $k$ remaining servers are designated as workers. The entire shard interval $[1 \isep n]$ is divided into $k$ non-overlapping intervals, and each worker is assigned one.
+
+When the coordinator discovers a new, valid block header, it instructs each worker to download and verify the block shards assigned to it. When a worker has finished verifying a shard, it reports the validity back to the coordinator. If all shards are reported as valid, the coordinator will vote to prepare the block, as per rule 2 in the Consensus section. If one or more shards are invalid, the coordinator will vote to prepare the empty block $\emptyset$.
+
+When a validator is eligible to create a block, each worker generates a block for each of the shards assigned to it, drawing transactions from the mempool shards assigned to them. Once a worker has finished preparing a block shard, it computes a hash of the message and reports that to the coordinator. One the coordinator has received a hash for every block shard, it broadcasts a block announcement message which contains these hashes along with other block headers.
+
+
+\subsection{Light clients}
+
+[TODO: Needs a lot of work.]
+
+Light clients download block headers, which contain the Merkle roots of commitment trees, along with all vote data.
+
+To send a payment, a light client will broadcast it to the network and then ask a full node to provide a Merkle proof that it was included in some committed block.
+
+%When receiving a payment
+
+Since commitment votes attest to the validity of an entire block, light clients enjoy the same security as full nodes without having to verify any transactions.
+
+
+\subsection{Comparison to payment channel systems}
+
+In ``eventual consensus'' systems such as Bitcoin, verifying the validity of a block requires downloading all of the transactions therein. To minimize on-chain transactions, the Lightning Network \cite{poon2015bitcoin} establishes payment channels to enable bidirectional off-chain transactions. Settlement is done on-chain, but is intentionally delayed so that if one party attempts to settle using an old channel state, the counterparty has time to intervene by uploading the latest channel state. Similar payment channel systems have been proposed for Ethereum, Zcash and others.
+
+Poon et al. argue that limiting on-chain transactions is important because it allows individuals with limited resources to verify each block. However, directly verifying each transaction is only one of several ways for a client to validate a block. Another possible strategy, for example, would be to probabilistically verify a proof of a block's validity. The PCP theorem \cite{arora1998proof} implies that this can be done by examining a constant number of bits in the proof, so block sizes would have no impact on verification difficulty.
+
+In our system, the voting rules prescribe that validators should only vote for block which they know to be valid. We assume that an invalid block will never be committed, since doing so would require that a $2/3$ supermajority break the rules by voting for an invalid block. Thus if a light client downloads vote data and verifies that a block has been committed, they have implicitly verified the validity of its transactions as well.
+
+Compared to payment channels, this scheme provides a more seamless user experience. The user does not need to think about how many payment channels to create, which hub or hubs to connect with, and how many coins to deposit in each channel. Additionally, payment channels require users to proactively monitor the blockchain for any attempts to commit an old channel state. Our system imposes no such requirement; users are free to go offline for arbitrary periods of time.
+
+Finally, in our system, users have immediate access to the entirety of their funds. In a payment channel system, funds can typically be spent at any time, but there are exceptions. If a direct connection becomes unresponsive, any funds locked in that channel will be temporarily unusable. It is possible to close a channel unilaterally, without the involvement of the other party, but it is a slow process since the other party needs time to contest the action.

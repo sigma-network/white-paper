@@ -1,0 +1,149 @@
+\section{BFT consensus algorithm}
+\label{consensus}
+
+\newcommand{\vote}[1]{\angled{#1}}
+\newcommand{\preparevote}[1]{\vote{\mathtt{PREPARE}, #1}}
+\newcommand{\commitvote}[1]{\vote{\mathtt{COMMIT}, #1}}
+\newcommand{\prepared}[2][]{\operatorname{prepared}_{#1}(#2)}
+\newcommand{\committed}[2][]{\operatorname{committed}_{#1}(#2)}
+
+In everyday commerce, transaction latency is of paramount importance. While some users may be willing to accept transactions without a guarantee of finality, others require such a guarantee in order to eliminate counterparty risk. For this reason, we use a Byzantine fault tolerant consensus algorithm to finalize each block as soon as it has been propagated through the network.
+
+Note that our algorithm is special purpose; we leverage certain properties of our blockchain design in order to guarantee convergence without relying on leaders. The algorithm would not work with arbitrary values; such a generalization would invalidate our proof of liveness.
+
+We assume that over $2/3$ of validators are honest, meaning that they vote as prescribed below. In particular, given a set of $3t + 1$ validators, we assume that at least $2t + 1$ of them are honest, while at most $t$ are not.
+
+We further assume that the same $2t + 1$ validators are connected with partial synchrony. Given some bounded delay $\Delta$, we assume that the system will alternate between periods of synchrony, where all messages are propagated among this $2t + 1$ validator set, and periods of asynchrony, where messages are lost or delayed beyond $\Delta$.
+
+Voting takes place over a series of rounds. For the moment, we will assume that some rounds are wholly synchronous, meaning that all votes are propagated among this $2t + 1$ validator set before any of them consider the round to have terminated. Because of timing issues, this does not immediately follow from our partial network synchrony assumption, but we will justify this stronger assumption in \autoref{round-timing}.
+
+
+\subsection{Definitions}
+
+We define two types of votes. $\preparevote{\nu, b, r}$ signifies that some validator $\nu$ votes to prepare block $b$ in round $r$. $\commitvote{\nu, b, r}$ signifies that $\nu$ votes to commit $b$ in round $r$. Both messages are accompanied by signatures to ensure authenticity. Note that validators may vote for an empty block; we denote this with $b = \emptyset$.
+
+Next, we define the predicate $\prepared{b, r}$ to be true if and only if $b$ has received at least $2t + 1$ votes of either kind in round $r$. We define $\committed{b, r}$ to be true if and only if $b$ has received at least $2t + 1$ \texttt{COMMIT} votes in round $r$.
+
+Further, we define $\prepared[\nu]{b, r}$ to be true if and only if $\nu$ knows $\prepared{b, r}$ to be true based on the votes that $\nu$ has observed. Similarly, we define $\committed[\nu]{b, r}$ to be true if and only if $\nu$ knows $\committed{b, r}$ to be true.
+
+
+\subsection{Voting rules}
+
+In each round $r$, each honest validator $\nu$ votes as follows.
+\begin{enumerate}
+  \item If $\prepared[\nu]{a, s}$ for some block $a$ and round number $s$, then let $s, a$ be the highest such round number and the associated block.
+    \begin{enumerate}
+      \item If $s = r - 1$, then $\nu$ votes $\commitvote{\nu, a, r}$.
+      \item Otherwise, $\nu$ votes $\preparevote{\nu, a, r}$.
+    \end{enumerate}
+  \item Otherwise, let $B$ be the set of valid blocks that $\nu$ has received for this block height.
+    \begin{enumerate}
+      \item If $B$ is a singleton set $\{ b \}$, then $\nu$ votes $\preparevote{\nu, b, r}$.
+      \item Otherwise, $\nu$ votes $\preparevote{\nu, \emptyset, r}$.
+    \end{enumerate}
+\end{enumerate}
+Each validator $\nu$ halts as soon as $\committed[\nu]{b, r}$ for any $b, r$. $\nu$ will then accept $b$ as the final, irreversible block for the current block height.
+
+
+\subsection{Proving safety and liveness}
+
+\begin{lemma}\label{also-prepared}
+  \( \committed{b, r} \) implies \( \prepared{b, r} \).
+\end{lemma}
+
+\begin{proof}
+  This follows immediately from our definitions. $\committed{b, r}$ entails that $b$ received at least $2t + 1$ \texttt{COMMIT} votes. This also satisfies the definition of $\prepared{b, r}$, which counts votes of either kind.
+\end{proof}
+
+\begin{lemma}\label{uniqueness}
+  At most one block will become prepared at each round number.
+\end{lemma}
+
+\begin{proof}
+  Assume the opposite: $\exists a, b, r$ such that $\prepared{a, r}$ and $\prepared{b, r}$. Then both $a$ and $b$ received $2t + 1$ or more votes in round $r$, for a total of $4t + 2$ or more votes. Since there are only $3t + 1$ validators, at least $t + 1$ of them must have voted for both $a$ and $b$, which violates our assumption that at most $t$ validators are dishonest.
+\end{proof}
+
+\begin{lemma}\label{finality}
+  $\nexists a, b, r, s$ such that $\committed{a, r}$, $\prepared{b, s}$, and $s > r$.
+
+  Equivalently, if some block is committed, no block may be prepared in a later round.
+\end{lemma}
+
+\begin{proof}
+  Suppose $\committed{a, r}$. Then by definition, $2t + 1$ validators must have voted $\commitvote{\nu, a, r}$, and by our honesty assumption, at least $t + 1$ of these votes must have come from honest validators. For each of these validators $\nu$, we know $\prepared[\nu]{a, r - 1}$, otherwise $\nu$ would not have followed rule 1a.
+
+  By the logic of rule 1, these $t + 1$ honest validators will continue voting for $a$ until a different block becomes prepared. This leaves $(3t + 1) - (t + 1) = 2t$ remaining validators who may vote for a different block. Since $2t$ is one short of a quorum, a different block will never gain enough votes to become prepared.
+\end{proof}
+
+\begin{theorem}[Safety]
+  At most one block will become committed.
+\end{theorem}
+
+\begin{proof}
+  Assume the opposite: $\exists a, b, r, s$ such that $\committed{a, r}$ and $\committed{b, s}$. \autoref{uniqueness} implies $r \ne s$. Without loss of generality, assume $r < s$. \autoref{also-prepared} implies $\prepared{b, s}$, which contradicts \autoref{finality}.
+\end{proof}
+
+\begin{theorem}[Liveness]
+  It is always possible for a block to become committed.
+\end{theorem}
+
+\begin{proof}
+  Let $r$ be the current round. Let $B$ be the set of valid blocks which have propagated to at least $2t + 1$ honest validators before they begin round $r$. Consider these possible protocol states:
+  \begin{enumerate}
+    \item $\nexists b, s$ such that $\prepared{b, s}$, and $|B| = 0$.
+    \item $\nexists b, s$ such that $\prepared{b, s}$, and $|B| = 1$.
+    \item $\nexists b, s$ such that $\prepared{b, s}$, and $|B| \ge 2$.
+    \item $\exists b, s$ such that $\prepared{b, s}$, but all such $s < r - 1$.
+    \item $\exists b$ such that $\prepared{b, r - 1}$.
+    \item $\exists b, s$ such that $\committed{b, s}$.
+  \end{enumerate}
+  We will show that in a synchronous round, the protocol will always progress to a state with a higher number. In an asynchronous round, it is possible for the protocol to regress from state 5 to state 4, but it will cycle between 4 and 5 until there is eventually a transition from 5 to 6.
+
+  If the current state is 1, then validators will vote in accordance with rule 2. If a valid block has been released but not fully propagated, it will be propagated this round, advancing us to state 2. If not, all honest validators will vote to prepare $\emptyset$ as per rule 2b, advancing us to round 5.
+
+  If the current state is 2, then the logic is similar. If two or more valid blocks have been released but only one has fully propagated, then a second block will be propagated this round, advancing us to state 3. If not, the $2/3$ of honest validators who have seen one block will vote for that block as per rule 2a, advancing us to round 5.
+
+  If the current state is 3, then the honest $2/3$ of validators will vote for $\emptyset$ as per rule 2b, advancing us to round 5.
+
+  If the current state is 4, then honest validators will vote $\preparevote{\nu, b, r}$ in accordance with rule 1b. Thus upon the completion of round $r$, we have $\prepared{b, r}$, which puts us in state 5 for round $r + 1$.
+
+  If the current state is 5, then honest validators will vote $\commitvote{\nu, a, r}$ in accordance with rule 1a, resulting in a successful commit, thereby advancing us to state 6 which is terminal.
+\end{proof}
+
+
+\subsection{Round timing}
+\label{round-timing}
+
+In our protocol, the timing of rounds is based on when certain messages are received. Since different validators may receive the same message at different times, this introduces an element of subjectivity. However, these differences in perceived round timing are bounded by $\Delta$ during periods of synchrony.
+
+Once a validator $\nu$ receives a valid block for some height, they consider that moment the beginning of the first round. If \texttt{BlockTimeout} elapses and $\nu$ hasn't received any valid block, they will consider the moment of the timeout to be the beginning of the first round.
+
+Subsequently, $\nu$ considers a round $r$ to have terminated (and round $r + 1$ to have begun) when one of the following conditions have been met:
+
+\begin{enumerate}
+  \item $2 \Delta$ has elapsed since the round begun. This allows $\Delta$ for votes to propagate, and $\Delta$ to account for differences in validators' perceptions of $r$'s start time. So if the network was synchronous during this period, then all votes in round $r$ have had sufficient time to propagate.
+  \item At least $t + 1$ votes have been cast in round $r + 1$. Our honesty assumption implies that at least one of these votes must be from an honest validator, so one of the other two termination conditions must have been met.
+  \item $\prepared[\nu]{b, r}$ for any block $b$. In this case, \autoref{uniqueness} implies that no other block can become prepared in $r$.\footnote{It is possible that $\committed{b, r}$, and $\nu$ may not become aware of it until more votes are received. For example, if $\nu$ received one vote to prepare $b$ and $2t$ votes to commit it, they would terminate the round based on this rule. If $\nu$ later received one more vote to commit $b$, then they would learn that $b$ has been committed. In cases like this, however, there is no harm in $\nu$ terminating the round early, since the commitment would have succeeded regardless.} Note that this termination condition is not strictly necessary---we could wait for the timeout---but terminating early helps to minimize latency.
+\end{enumerate}
+
+[TODO: This part is unfinished.]
+
+
+\subsection{Incentives}
+
+Sigma Network offers neither rewards for voting nor penalties for breaking the rules. Validators already have an incentive to download vote data, since they must be prepared to create a block in the future when it is their turn. This is in contrast to protocols such as Casper FFG \cite{buterin2017casper}, which punish validators who violate a rule by slashing their funds.
+
+The safety of our protocol relies on the difficulty of coordinating $t + 1$ validators and convincing them to participate in a joint attack. We consider this unlikely, since validators are directly invested in the success of the currency, and a successful $1/3$ attack would likely have a major impact on the value of their investment.
+
+[TODO: Consider having validators expose their nullifiers so that, in the event of a successful $1/3$ attack, the community could coordinate a hard fork to blacklist the attacker. This seems almost as effective as Casper FFG's automatic penalties, since in in the event of a successful $1/3$ attack, an emergency hard fork would be required anyway to sort out the conflicting finalized checkpoints.]
+
+
+\subsection{Related work}
+
+Our consensus algorithm is similar to that of Tendermint \cite{kwon2014tendermint}, the main difference being that we have eliminated the propose step. In the general problem of BFT consensus, proposals play an important role in guaranteeing eventual convergence. Without proposals, voters may be split among multiple candidate values and possibly never converge, particularly if malicious voters impede convergence by voting for minority values. In the context of our blockchain design, however, the logic in rule 2 ensures convergence, as we showed in the liveness proof.
+
+Under normal conditions, our algorithm transitions from state 1 to state 5, then to state 6. So finality is typically reached after just two rounds of communication, whereas other BFT consensus algorithms require a minimum of three rounds.
+
+Another advantage of our leaderless voting rules is that soft forks require 67\% support, rather than 34\% support, as in proposal-based protocols like Tendermint. We discuss this further in \autoref{soft-forks}.
+
+Our timing mechanics also differ from other BFT algorithms. While Tendermint and Algorand allocate a specific period of time for each round of voting, our protocol terminates rounds early when a block becomes prepared. This speeds up the consensus process, particularly in the common case where a single block is propagated, becomes prepared in the first round, and becomes committed in the second round.

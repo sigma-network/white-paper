@@ -1,0 +1,42 @@
+\section{Attack vectors}
+\label{attacks}
+
+Since validators will only accept blocks with commitment votes from over 2/3 of validators, fork-based attacks such as stake bleeding \cite{gazi2018stake} are not possible. Sybil and eclipse attacks are possible, but would only cause a denial of service; any targets isolated from the honest majority would simply stop accepting new blocks.
+
+
+\subsection{Censorship and other soft forks}
+\label{soft-forks}
+
+[TODO: Explain why soft forks require a 67\% supermajority. The key point is that with our leaderless BFT algorithm, when honest validators see exactly one valid block for a certain block height, they will repeatedly vote for that block unless they see a conflicting supermajority.]
+
+
+\subsection{34\% attacks}
+
+[TODO: Add analysis about how much stake a validator would actually need in order to have a good chance of eventually getting a 34\% stake in a single round. Maybe a graph with stake on the x axis and log(probability) on the y axis, with a few lines for different validator set sizes. The probability can be calculated with the binomial CDF.]
+
+
+\subsection{Private key markets}
+
+[TODO]
+
+
+\subsection{Denial of service}
+
+An denial of service (DOS) attack could temporarily prevent new blocks from being committed by forcing 34\% of validators offline. Note that this applies to any BFT consensus system; Bracha et al. \cite{bracha1985asynchronous} proved that $\ceil{(2n+1)/3}$ honest voters are necessary to reach agreement if the remaining voters are malicious.
+
+``Eventual consensus'' systems such as Bitcoin are somewhat vulnerable to DOS attacks as well. If a DOS attack forced 50\% of Bitcoin miners offline, the remaining miners could continue creating blocks, but users should not accept those blocks as final until the network's hashrate returned to normal. This is because users cannot distinguish between an outage and a partition, and in the event of a partition, a fork on the other side of the partition might prevail after the partition is resolved.
+
+It is up to validators to defend against DOS attacks using whatever methods they see fit. Still, we will offer a few recommendations for application layer DOS attacks. Other DOS attacks, such as SYN floods or NTP amplification, are out of scope since there are well-known countermeasures which are not specific to our protocol.
+
+At the application layer, an attacker might [TODO].
+
+Validators should accept a limited number of connections, and should throttle each one.
+
+
+\subsection{Sybil attacks}
+
+[TODO]
+
+% All cryptocurrencies are vulnerable to denial-of-service attacks to some extent. With Bitcoin, for example, 
+% Can't consider anything confirmed if half the hash power went offline.
+
