@@ -3,14 +3,54 @@
 
 When a validator creates a new account, it is important that they not be able to predict its ticket scores. Otherwise, a validator could enumerate possible key pairs until they eventually find one with high-scoring tickets. To prevent such ``grinding'' attacks, we use a new random seed in each epoch. A validator account created in epoch $i$ cannot submit tickets until epoch $i + 2$, so there is a full round of entropy generation in epoch $i + 1$ before the account becomes eligible.
 
-The random seed for each epoch is derived from the signatures of block creators. In particular, each block creator submits $\operatorname{R}(\mathrm{sk}, h)$ as their entropy contribution, where $R$ is a pseudorandom function, sk is their secret key and $h$ is the height of the block. This is one of the outputs of the NIZKP given by each block creator, which is described in \autoref{block-creation-circuit}.
+The random seed for each epoch is derived from the signatures of block creators. In particular, each block creator submits $\operatorname{R}(\mathrm{sk}, h)$ as their entropy contribution, where $R$ is a pseudorandom function, sk is their secret key and $h$ is the height of the block. This computation is done in zero knowledge; the details are described in \autoref{block-creation-circuit}. At the end of each epoch, the bitwise XOR of these entropy submissions becomes the random seed of the following epoch.
 
-At the end of each epoch, these entropy submissions are xor'd together, and the resulting number becomes the random seed of the following epoch.
+Note that this scheme has the properties of a verifiable random function (VRF), although it does not use a typical VRF construction. In particular, the pseudorandom computation is deterministic, and its correctness is publically verifiable since a zero-knowledge proof is provided. Therefore, the only way for a block creator to influence the entropy stream is to skip their block, forfeiting the block reward.
 
-Since this computation is deterministic, the only way for a validator to influence entropy is to skip their block. Consider the validator $\nu$ who is eligible to create the last $n$ blocks in some epoch $i$. (Typically $n = 1$, but $\nu$ could get lucky and have several contiguous blocks at the end of the epoch.) $\nu$ may manipulate $n$ bits of entropy by creating or withholding blocks. In other words, $\nu$ can choose from $2^n$ random seeds for epoch $i + 1$. If they do withhold blocks, they will miss out on the block reward, but it may occasionally be profitable if it results in a more favorable random seed for the next epoch.
+\subsection{Profitability of entropy manipulation}
 
-[TODO: Need some analysis to show that manipulation is rarely profitable, and that there's negligible effect on the equitable distribution of block rewards.]
+Consider a validator with a stake of $p$, expressed as a fraction of the money supply that is actively staked. Let $b$ be the number of contiguous blocks at the very end of an epoch which they are eligible to create.
 
-[RANDAO is reasonable alternative---we can slash validators who withhold their entropy contribution rather just relying on the block reward as a minor incentive. However, I think the analysis will show that it's unnecessary; profitable manipulation will be rare either way.]
+Let $c$ be the number of possible random seeds which the validator may choose from. Since the validator can manipulate $b$ bits of entropy by creating or withholding blocks, $c = 2^b$. We can compute the expected value of $c$ by averaging over all possible values of $b$, weighted by their probability:
 
-[Also considering verifiable delay functions which can provide manipulation-proof entropy, but it may be best to wait for new developments in this very new field. \cite{wesolowski2018slow} seems practical, but relies on discrete log hardness.]
+Let $r_i$ be the validator's representation in the next epoch which would result from the ``default'' seed. Let $r_2, \dots, r_{2^b}$ be the validator's representation resulting from the alternative seeds which the validator can choose from.
+
+The largest advantage that the validator may receive can be written as
+\[ \max_{2 \le i \le 2^b}(r_i - r_1) \]
+To compute the expected value of this advantage, we apply Fubini's theorem with the linearity of expectation:
+\begin{align*}
+E\left[ \max_{2 \le i \le 2^b}(r_i - r_1) \mathbin{\vert} b \right] &= \sum_{j=0}^{\infty} P\left( \max_{2 \le i \le 2^b}(r_i - r_1) > j \right) \\
+&= \sum_{j=0}^{\infty} P(r_2 > r_1 + j \text{ or } \dots \text { or } r_{2^b} > r_1 + j) \\
+% Alternate version:
+%\intertext{We now apply the principle of inclusion-exclusion. Since $r_2, \dots, r_{2^b}$ are identically distributed, we use $r_2$ in place of the other variables, giving}
+%&= \sum_{j=0}^{\infty} \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} P(r_2 > r_1 + j)^k \right) \\
+%\intertext{Substituting in the binomial PDF, we have}
+%&= \sum_{j=0}^{\infty} \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} \sum_{l=r_1 + j + 1}^{n} \left( \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
+%&= \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} \sum_{j=0}^{\infty} \sum_{l=r_1 + j + 1}^{n} \left( \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
+%&= \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} \sum_{l=r_1 + j + 1}^{n} \left( (j + 1) \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
+\intertext{Applying De Morgan's law, we get}
+&= \sum_{j=0}^{\infty} \left( 1 - P(r_2 \le r_1 + j \text{ and } \dots \text { and } r_{2^b} \le r_1 + j) \right) \\
+\intertext{Since $r_2, \dots, r_{2^b}$ are independent and identically distributed, we can separate the probabilities and use $r_2$ in place of the other variables:}
+%&= \sum_{j=0}^{\infty} \left( 1 - \prod_{j=2}^{2^b} P(r_j \le r_1 + j) \right) \\
+&= \sum_{j=0}^{\infty} \left( 1 - P(r_2 \le r_1 + j)^{2^b - 1} \right) \\
+\intertext{Since $r_2$ cannot possibly exceed $n$, we can give our summation an upper bound of $n - r_1$:}
+&= \sum_{j=0}^{n - r_1} \left( 1 - P(r_2 \le r_1 + j)^{2^b - 1} \right) \\
+\intertext{Finally, applying the binomial CDF, we have}
+&= \sum_{j=0}^{n - r_1} \left( 1 - \left( \sum_{k=0}^{r_1 + j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b - 1} \right)
+\end{align*}
+where $n$ is the number of blocks in an epoch.
+
+We now have a formula for the validator's expected advantage given a particular number of manipulable bits $b$. But since $b$ varies, we want to study the expected advantage for all possible values of $b$, weighted by their probabilities:
+\begin{align*}
+E\left[ \max_{2 \le i \le 2^b}(r_i - r_1) \right] &= \sum_{b=0}^{n} P(b) E\left[ \max_{2 \le i \le 2^b}(r_i - r_1) \mathbin{\vert} b \right] \\
+\intertext{Applying the formula we derived above, along with $P(b) = p^b$, we get}
+&= \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n - r_1} \left( 1 - \left( \sum_{k=0}^{r_1 + j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b - 1} \right) \right)
+\end{align*}
+
+[TODO: This is unfinished. Need to revisit this and make probably some approximations to make this more comprehendible. Alternatively, don't include the formulas and just link to some code instead.]
+
+\subsection{Alternative designs}
+
+There are several potential ways to increase the penalty for entropy manipulation. One option is to require that validators make a deposit before contributing entropy, and slash the deposit of any validator who withholds their entropy contribution. This is essentially the idea behind RANDAO \cite{randao}. RANDAO also uses a commit-reveal mechanic, but this is unnecessary with a VRF scheme like ours, where entropy contributions are computed deterministically. [TODO: Finish this.]
+
+%[Also considering verifiable delay functions which can provide manipulation-proof entropy, but it may be best to wait for new developments in this very new field. \cite{wesolowski2018slow} seems practical, but relies on discrete log hardness.]

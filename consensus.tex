@@ -131,9 +131,9 @@ Subsequently, $\nu$ considers a round $r$ to have terminated (and round $r + 1$ 
 
 \subsection{Incentives}
 
-Sigma Network offers neither rewards for voting nor penalties for breaking the rules. Validators already have an incentive to download vote data, since they must be prepared to create a block in the future when it is their turn. This is in contrast to protocols such as Casper FFG \cite{buterin2017casper}, which punish validators who violate a rule by slashing their funds.
+Sigma Network offers neither rewards for voting, nor penalties for breaking the rules. Validators already have an incentive to download vote data, since they must be prepared to create a block in the future when it is their turn. This is in contrast to protocols such as Casper FFG \cite{buterin2017casper}, which punish validators who violate a rule by slashing their funds.
 
-The safety of our protocol relies on the difficulty of coordinating $t + 1$ validators and convincing them to participate in a joint attack. We consider this unlikely, since validators are directly invested in the success of the currency, and a successful $1/3$ attack would likely have a major impact on the value of their investment.
+The safety of our protocol lies in the difficulty of coordinating $t + 1$ voters and convincing them to participate in a joint attack. We consider this unlikely, since validators are directly invested in the success of the currency, and a successful $1/3$ attack would likely have a major impact on the value of their investment.
 
 [TODO: Consider having validators expose their nullifiers so that, in the event of a successful $1/3$ attack, the community could coordinate a hard fork to blacklist the attacker. This seems almost as effective as Casper FFG's automatic penalties, since in in the event of a successful $1/3$ attack, an emergency hard fork would be required anyway to sort out the conflicting finalized checkpoints.]
 
@@ -146,4 +146,4 @@ Under normal conditions, our algorithm transitions from state 1 to state 5, then
 
 Another advantage of our leaderless voting rules is that soft forks require 67\% support, rather than 34\% support, as in proposal-based protocols like Tendermint. We discuss this further in \autoref{soft-forks}.
 
-Our timing mechanics also differ from other BFT algorithms. While Tendermint and Algorand allocate a specific period of time for each round of voting, our protocol terminates rounds early when a block becomes prepared. This speeds up the consensus process, particularly in the common case where a single block is propagated, becomes prepared in the first round, and becomes committed in the second round.
+Our timing mechanics also differ from other BFT algorithms. While Tendermint and Algorand allocate a fixed period of time for each round of voting, our protocol terminates rounds early in certain cases. This speeds up the consensus process, particularly in the common case where a single block is announced, becomes prepared in the first round, and becomes committed in the second round.
