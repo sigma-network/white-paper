@@ -13,7 +13,7 @@ Consider a validator with a stake of $p$, expressed as a fraction of the money s
 
 Let $c$ be the number of possible random seeds which the validator may choose from. Since the validator can manipulate $b$ bits of entropy by creating or withholding blocks, $c = 2^b$. We can compute the expected value of $c$ by averaging over all possible values of $b$, weighted by their probability:
 
-Let $r_i$ be the validator's representation in the next epoch which would result from the ``default'' seed. Let $r_2, \dots, r_{2^b}$ be the validator's representation resulting from the alternative seeds which the validator can choose from.
+Let $r_1$ be the validator's representation in the next epoch (that is, the number of blocks they will be eligible to create) which would result from the ``default'' seed, if no manipulation occurs. Let $r_2, \dots, r_{2^b}$ be the validator's representation resulting from the alternative seeds which the validator can choose from.
 
 The largest advantage that the validator may receive can be written as
 \[ \max_{2 \le i \le 2^b}(r_i - r_1) \]
