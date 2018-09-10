@@ -45,11 +45,12 @@ We now have a formula for the validator's expected advantage given a particular 
   \intertext{Applying the formula we derived above, along with $P(b) = p^b$, we get}
   &= \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b} \right) \right)
 \end{align*}
+Finally, to compute the expected advantage from manipulation, $E[a]$, we simply divide this quantity by the expected rewards with no manipulation, which is $n p$.
 
-\begin{wrapfigure}{r}{.45\textwidth}
-  \begin{tabularx}{.45\textwidth}{|X|X|X|}
+\begin{wrapfigure}{r}{.42\textwidth}
+  \begin{tabularx}{.42\textwidth}{|Y|Y|Y|}
     \hline
-    \multicolumn{1}{|c|}{$p$} & \multicolumn{1}{|c|}{$n$} & \multicolumn{1}{|c|}{$E[a]$} \\
+    $p$ & $n$ & $E[a]$ \\
     \hline
     \multirow{3}{*}{25\%}
     & 100 & 3.09\% \\
