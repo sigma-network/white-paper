@@ -9,45 +9,61 @@ Note that this scheme has the properties of a verifiable random function (VRF), 
 
 \subsection{Profitability of entropy manipulation}
 
-Consider a validator with a stake of $p$, expressed as a fraction of the money supply that is actively staked. Let $b$ be the number of contiguous blocks at the very end of an epoch which they are eligible to create.
+Consider a validator with a stake of $p$, expressed as a fraction of the money supply that is actively staked. Let $b$ be the number of contiguous blocks at the very end of an epoch which they are eligible to create. By submitting or withholding blocks, the validator can manipulate up to $b$ bits of entropy. In other words, they may choose from among $2^b$ random seeds for the next epoch.
 
-Let $c$ be the number of possible random seeds which the validator may choose from. Since the validator can manipulate $b$ bits of entropy by creating or withholding blocks, $c = 2^b$. We can compute the expected value of $c$ by averaging over all possible values of $b$, weighted by their probability:
+Net $n$ be the number of blocks in an epoch. Let $r_1$ be the validator's representation in the next epoch (that is, the number of blocks they will be eligible to create) which would result from the ``default'' seed, if no manipulation occurs. Let $r_2, \dots, r_{2^b}$ be the validator's representation resulting from the alternative seeds which the validator can choose from.
 
-Let $r_1$ be the validator's representation in the next epoch (that is, the number of blocks they will be eligible to create) which would result from the ``default'' seed, if no manipulation occurs. Let $r_2, \dots, r_{2^b}$ be the validator's representation resulting from the alternative seeds which the validator can choose from.
+If the validator performs no entropy manipulation, their expected block rewards from the next epoch would simply be $n p$. We will compare this to the expected block rewards from a manipulative validator, who calculates their block rewards for all possible seeds, and choses the seed which results in them receiving the most block rewards. In other words, we want to calculate
 
-The largest advantage that the validator may receive can be written as
-\[ \max_{2 \le i \le 2^b}(r_i - r_1) \]
-To compute the expected value of this advantage, we apply Fubini's theorem with the linearity of expectation:
+$$ E\left[ \max_{1 \le i \le 2^b}(r_i) \right] $$
+
+Note that this is an upper bound, because we are not accounting for any missed block rewards which a manipulator would incur from withholding blocks.
+
+To calculate this expected value, we start by applying Fubini's theorem with the linearity of expectation:
 \begin{align*}
-E\left[ \max_{2 \le i \le 2^b}(r_i - r_1) \mathbin{\vert} b \right] &= \sum_{j=0}^{\infty} P\left( \max_{2 \le i \le 2^b}(r_i - r_1) > j \right) \\
-&= \sum_{j=0}^{\infty} P(r_2 > r_1 + j \text{ or } \dots \text { or } r_{2^b} > r_1 + j) \\
-% Alternate version:
-%\intertext{We now apply the principle of inclusion-exclusion. Since $r_2, \dots, r_{2^b}$ are identically distributed, we use $r_2$ in place of the other variables, giving}
-%&= \sum_{j=0}^{\infty} \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} P(r_2 > r_1 + j)^k \right) \\
-%\intertext{Substituting in the binomial PDF, we have}
-%&= \sum_{j=0}^{\infty} \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} \sum_{l=r_1 + j + 1}^{n} \left( \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
-%&= \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} \sum_{j=0}^{\infty} \sum_{l=r_1 + j + 1}^{n} \left( \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
-%&= \sum_{k=1}^{2^b-1} \left( (-1)^{k+1} \sum_{l=r_1 + j + 1}^{n} \left( (j + 1) \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
-\intertext{Applying De Morgan's law, we get}
-&= \sum_{j=0}^{\infty} \left( 1 - P(r_2 \le r_1 + j \text{ and } \dots \text { and } r_{2^b} \le r_1 + j) \right) \\
-\intertext{Since $r_2, \dots, r_{2^b}$ are independent and identically distributed, we can separate the probabilities and use $r_2$ in place of the other variables:}
-%&= \sum_{j=0}^{\infty} \left( 1 - \prod_{j=2}^{2^b} P(r_j \le r_1 + j) \right) \\
-&= \sum_{j=0}^{\infty} \left( 1 - P(r_2 \le r_1 + j)^{2^b - 1} \right) \\
-\intertext{Since $r_2$ cannot possibly exceed $n$, we can give our summation an upper bound of $n - r_1$:}
-&= \sum_{j=0}^{n - r_1} \left( 1 - P(r_2 \le r_1 + j)^{2^b - 1} \right) \\
-\intertext{Finally, applying the binomial CDF, we have}
-&= \sum_{j=0}^{n - r_1} \left( 1 - \left( \sum_{k=0}^{r_1 + j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b - 1} \right)
+  E\left[ \max_{1 \le i \le 2^b}(r_i) \right] &= \sum_{j=0}^{n} P\left( \max_{1 \le i \le 2^b}(r_i) > j \right) \\
+  &= \sum_{j=0}^{n} P(r_1 > j \text{ or } \dots \text { or } r_{2^b} > j) \\
+  % Alternate version:
+  %\intertext{We now apply the principle of inclusion-exclusion. Since $r_1, \dots, r_{2^b}$ are identically distributed, we use $r_1$ in place of the other variables, giving}
+  %&= \sum_{j=0}^{\infty} \sum_{k=1}^{2^b} \left( (-1)^{k+1} P(r_1 > r_1 + j)^k \right) \\
+  %\intertext{Substituting in the binomial PDF, we have}
+  %&= \sum_{j=0}^{\infty} \sum_{k=1}^{2^b} \left( (-1)^{k+1} \sum_{l=r_1 + j + 1}^{n} \left( \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
+  %&= \sum_{k=1}^{2^b} \left( (-1)^{k+1} \sum_{j=0}^{\infty} \sum_{l=r_1 + j + 1}^{n} \left( \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
+  %&= \sum_{k=1}^{2^b} \left( (-1)^{k+1} \sum_{l=r_1 + j + 1}^{n} \left( (j + 1) \binom{n}{l} p^l (1-p)^{n-l} \right) \right) \\
+  \intertext{Applying De Morgan's law, this becomes}
+  &= \sum_{j=0}^{n} \left( 1 - P(r_1 \le j \text{ and } \dots \text { and } r_{2^b} \le j) \right) \\
+  \intertext{Since $r_1, \dots, r_{2^b}$ are independent and identically distributed, we can separate the probabilities and use $r_1$ in place of the other variables:}
+  &= \sum_{j=0}^{n} \left( 1 - P(r_1 \le j)^{2^b} \right) \\
+  \intertext{Finally, applying the binomial CDF, we have}
+  &= \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b} \right)
 \end{align*}
 where $n$ is the number of blocks in an epoch.
 
 We now have a formula for the validator's expected advantage given a particular number of manipulable bits $b$. But since $b$ varies, we want to study the expected advantage for all possible values of $b$, weighted by their probabilities:
 \begin{align*}
-E\left[ \max_{2 \le i \le 2^b}(r_i - r_1) \right] &= \sum_{b=0}^{n} P(b) E\left[ \max_{2 \le i \le 2^b}(r_i - r_1) \mathbin{\vert} b \right] \\
-\intertext{Applying the formula we derived above, along with $P(b) = p^b$, we get}
-&= \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n - r_1} \left( 1 - \left( \sum_{k=0}^{r_1 + j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b - 1} \right) \right)
+  E\left[ a \right] &= \sum_{b=0}^{n} P(b) E\left[ a \mathbin{\vert} b \right] \\
+  \intertext{Applying the formula we derived above, along with $P(b) = p^b$, we get}
+  &= \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b} \right) \right)
 \end{align*}
 
-[TODO: This is unfinished. Need to revisit this and make probably some approximations to make this more comprehendible. Alternatively, don't include the formulas and just link to some code instead.]
+\begin{wrapfigure}{r}{.45\textwidth}
+  \begin{tabularx}{.45\textwidth}{|X|X|X|}
+    \hline
+    \multicolumn{1}{|c|}{$p$} & \multicolumn{1}{|c|}{$n$} & \multicolumn{1}{|c|}{$E[a]$} \\
+    \hline
+    \multirow{3}{*}{25\%}
+    & 100 & 3.09\% \\
+    \cline{2-3}
+    & 1000 & 0.98\% \\
+    \cline{2-3}
+    & 10000 & 0.31\% \\
+    \hline
+  \end{tabularx}
+  \caption{The expected advantage resulting from manipulation.}
+  \label{fig:manipulation}
+\end{wrapfigure}
+
+The results are shown in \autoref{fig:manipulation}. [TODO: Add some results with different p values, and some commentary, noting that actual advantages will be even lower because of imperfect information and the missed block rewards we didn't account for.]
 
 \subsection{Alternative designs}
 
