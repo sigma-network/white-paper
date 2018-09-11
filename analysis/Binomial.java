@@ -11,15 +11,11 @@ class BinomialMath {
   }
 
   private static BigDecimal binomialPdf(BinomialParams params) {
-    BigDecimal result = new BigDecimal(binomial(params.trials, params.successes));
-    BigDecimal pBig = new BigDecimal(params.p), qBig = new BigDecimal(1 - params.p);
-    for (int i = 0; i < params.successes; ++i) {
-      result = result.multiply(pBig);
-    }
-    for (int i = 0; i < params.trials - params.successes; ++i) {
-      result = result.multiply(qBig);
-    }
-    return result;
+    // TODO: Explain how I came up with the precision.
+    MathContext context = new MathContext(20);
+    return new BigDecimal(binomial(params.trials, params.successes))
+      .multiply(new BigDecimal(params.p).pow(params.successes, context), context)
+      .multiply(new BigDecimal(1 - params.p).pow(params.trials - params.successes, context), context);
   }
 
   static BigDecimal binomialCdf(int maxSuccesses, int trials, double p) {
@@ -42,7 +38,6 @@ class BinomialMath {
       result = result.multiply(BigInteger.valueOf(n - i))
         .divide(BigInteger.valueOf(i+1));
     }
-    System.out.printf("%d %d %s\n", n, k, result.toString().length());
     return result;
   }
 

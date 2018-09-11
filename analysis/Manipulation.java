@@ -14,20 +14,21 @@ public class Manipulation {
     double normalRewards = blocksPerEpoch * attackerStake;
     double ratio = manipulatedRewards / normalRewards;
     double advantage = ratio - 1;
-    System.out.printf("Advantage: %.3f%%\n", advantage * 100);
+    System.out.printf("Advantage: %.5f%%\n", advantage * 100);
   }
 
   static double expectedBlockRewards(int blocksPerEpoch, double p) {
     double sum = 0;
     for (int bits = 0; bits <= blocksPerEpoch; ++bits) {
-      double probabilityOfBits = Math.pow(p, bits) - Math.pow(p, bits + 1);
+      // The probability of being able to manipulate exactly p bits.
+      double probabilityOfBits = Math.pow(p, bits) * (1 - p);
 
       // The maximum possible reward, weighted by the probability of getting this many bits.
       double maxWeightedReward = probabilityOfBits * blocksPerEpoch;
 
-      if (maxWeightedReward < 1e-5) {
+      if (maxWeightedReward < 1e-4) {
         // The proper calculation may be expensive, but since we have an upper bound which is
-        // negligible anyway, we just use that.
+        // very small, we add that instead.
         sum += maxWeightedReward;
       } else {
         sum += probabilityOfBits * expectedBlockRewardsGivenBits(blocksPerEpoch, p, bits);
@@ -38,12 +39,11 @@ public class Manipulation {
 
   // Upper bound; doesn't account for sacrificed rewards.
   static double expectedBlockRewardsGivenBits(int blocksPerEpoch, double p, int bits) {
+    // We compute the expected value by summing the probabilities of exceeding each potential value.
     double sum = 0;
     for (int blockRewards = 0; blockRewards <= blocksPerEpoch; ++blockRewards) {
-      //System.out.printf("prob of exceeding %d\n", blockRewards);
       sum += probOfExceeding(blockRewards, blocksPerEpoch, p, bits);
     }
-    //System.out.printf("for bits=%d: %f\n", bits, sum);
     return sum;
   }
 
@@ -51,7 +51,6 @@ public class Manipulation {
     BigDecimal probOfNotExceeding = BinomialMath.binomialCdf(blockRewards, blocksPerEpoch, p);
     BigInteger numSeeds = getNumSeeds(bits);
     BigDecimal probOfNoneExceeding = pow(probOfNotExceeding, numSeeds);
-    //System.out.printf("    %s^%s = %s\n", probOfNotExceeding, numSeeds, probOfNoneExceeding);
     return 1 - probOfNoneExceeding.doubleValue();
   }
 
@@ -68,7 +67,8 @@ public class Manipulation {
       return x;
     }
 
-    MathContext context = new MathContext(100); // TODO revisit precision
+    // TODO: Explain how I came up with the precision.
+    MathContext context = new MathContext(20);
     BigInteger two = BigInteger.valueOf(2);
     BigDecimal xSquared = x.multiply(x, context);
     BigInteger nDiv2 = n.divide(two);
