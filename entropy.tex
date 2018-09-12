@@ -14,11 +14,7 @@ Consider a validator with a stake of $p$, expressed as a fraction of the money s
 Net $n$ be the number of blocks in an epoch. Let $r_1$ be the validator's representation in the next epoch (that is, the number of blocks they will be eligible to create) which would result from the ``default'' seed, if no manipulation occurs. Let $r_2, \dots, r_{2^b}$ be the validator's representation resulting from the alternative seeds which the validator can choose from.
 
 If the validator performs no entropy manipulation, their expected block rewards from the next epoch would simply be $n p$. We will compare this to the expected block rewards from a manipulative validator, who calculates their block rewards for all possible seeds, and choses the seed which results in them receiving the most block rewards. In other words, we want to calculate
-
 $$ E\left[ \max_{1 \le i \le 2^b}(r_i) \right] $$
-
-Note that this is an upper bound, because we are not accounting for any missed block rewards which a manipulator would incur from withholding blocks.
-
 To calculate this expected value, we start by applying Fubini's theorem with the linearity of expectation:
 \begin{align*}
   E\left[ \max_{1 \le i \le 2^b}(r_i) \right] &= \sum_{j=0}^{n} P\left( \max_{1 \le i \le 2^b}(r_i) > j \right) \\
@@ -44,8 +40,10 @@ $$ \sum_{b=0}^{n} P(b) E\left[ \max_{1 \le i \le 2^b}(r_i) \right] $$
 Applying the formula we derived above, along with $P(b) = p^b$, yields the result
 $$ \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b} \right) \right) $$
 
-\begin{wrapfigure}{r}{.42\textwidth}
-  \begin{tabularx}{.42\textwidth}{|Y|Y|Y|}
+Finally, to compute the expected advantage from manipulation, $E[a]$, we simply divide this quantity by the expected rewards with no manipulation, which is $n p$.
+
+\begin{wrapfigure}{r}{.41\textwidth}
+  \begin{tabularx}{.41\textwidth}{|Y|Y|Y|}
     \hline
     $p$ & $n$ & $E[a]$ \\
     \hline
@@ -74,9 +72,10 @@ $$ \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \bi
   \caption{The expected advantage resulting from manipulation.}
   \label{fig:manipulation}
 \end{wrapfigure}
-Finally, to compute the expected advantage from manipulation, $E[a]$, we simply divide this quantity by the expected rewards with no manipulation, which is $n p$.
 
-We used a computer program to calculate $E[a]$ for various parameters. The results are shown in \autoref{fig:manipulation}. As you can see, the advantage from manipulation diminishes as the epoch size increases. This can be explained by the law of large numbers---the variance of a validator's representation decreases as the number of samples (that is, blocks) increases.
+We used a computer program to calculate $E[a]$ for various parameters. The results are shown in \autoref{fig:manipulation}. Note that the $E[a]$ figures are upper bounds, since we did not account for any missed block rewards resulting from withholding blocks. We also assumed that manipulators can perfectly predict their representation in the next epoch, whereas in reality, they can only estimate it based on their registration ticket scores.
+
+As you can see, the advantage from manipulation diminishes as the epoch size increases. This can be explained by the law of large numbers---the variance of a validator's representation decreases as the number of samples (that is, blocks) increases.
 
 \subsection{Alternative designs}
 
