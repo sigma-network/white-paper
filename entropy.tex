@@ -39,12 +39,10 @@ To calculate this expected value, we start by applying Fubini's theorem with the
 \end{align*}
 where $n$ is the number of blocks in an epoch.
 
-We now have a formula for the validator's expected advantage given a particular number of manipulable bits $b$. But since $b$ varies, we want to study the expected advantage for all possible values of $b$, weighted by their probabilities:
-\begin{align*}
-  E\left[ a \right] &= \sum_{b=0}^{n} P(b) E\left[ a \mathbin{\vert} b \right] \\
-  \intertext{Applying the formula we derived above, along with $P(b) = p^b$, we get}
-  &= \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b} \right) \right)
-\end{align*}
+We now have a formula for the validator's expected reward given a particular number of manipulable bits $b$. But since $b$ varies, we want to calculate the expected reward for all possible values of $b$, weighted by their probabilities:
+$$ \sum_{b=0}^{n} P(b) E\left[ \max_{1 \le i \le 2^b}(r_i) \right] $$
+Applying the formula we derived above, along with $P(b) = p^b$, yields the result
+$$ \sum_{b=0}^{n} \left( p^b \sum_{j=0}^{n} \left( 1 - \left( \sum_{k=0}^{j} \binom{n}{k} p^k (1-p)^{n-k} \right)^{2^b} \right) \right) $$
 
 \begin{wrapfigure}{r}{.42\textwidth}
   \begin{tabularx}{.42\textwidth}{|Y|Y|Y|}
@@ -78,10 +76,14 @@ We now have a formula for the validator's expected advantage given a particular 
 \end{wrapfigure}
 Finally, to compute the expected advantage from manipulation, $E[a]$, we simply divide this quantity by the expected rewards with no manipulation, which is $n p$.
 
-The results are shown in \autoref{fig:manipulation}. [TODO: Add some results with different p values, and some commentary, noting that actual advantages will be even lower because of imperfect information and the missed block rewards we didn't account for.]
+We used a computer program to calculate $E[a]$ for various parameters. The results are shown in \autoref{fig:manipulation}. As you can see, the advantage from manipulation diminishes as the epoch size increases. This can be explained by the law of large numbers---the variance of a validator's representation decreases as the number of samples (that is, blocks) increases.
 
 \subsection{Alternative designs}
 
-There are several potential ways to increase the penalty for entropy manipulation. One option is to require that validators make a deposit before contributing entropy, and slash the deposit of any validator who withholds their entropy contribution. This is essentially the idea behind RANDAO \cite{randao}. RANDAO also uses a commit-reveal mechanic, but this is unnecessary with a VRF scheme like ours, where entropy contributions are computed deterministically. [TODO: Finish this. Mention BLS and VDF schemes.]
+There are several possible ways to mitigate entropy manipulation. One option is to slash the funds of validators who withhold blocks. This is essentially the idea behind RANDAO \cite{randao}, although RANDAO uses a commit-reveal scheme while we use a VRF. This approach would reduce $E[a]$ by making manipulation more costly, although it would also harm validators who accidentally miss their chance to submit a block.
 
-%[Also considering verifiable delay functions which can provide manipulation-proof entropy, but it may be best to wait for new developments in this very new field. \cite{wesolowski2018slow} seems practical, but relies on discrete log hardness.]
+Another option is to use threshold signatures, such as the BLS scheme which is used by Dfinity \cite{hanke2018dfinity}. In a $(t,n)$-threshold signature scheme, the shares of at least $t$ of $n$ parties are required to create the group signature. As long as $t$ validators are honest and able to communicate with one another, the result should be impossible to manipulate.
+
+Yet another option is to pass VRF outputs through a verifiable delay function (VDF), such as the trapdoor VDF proposed by \cite{wesolowski2018efficient}, and take its output as the next epoch's seed. The idea is that validators would not have sufficient time to compute the seeds which would result from submitting or withholding a block. Under normal circumstances, the network would have moved on before the computation can be done.
+
+While these alternative schemes are academically interesting, they would complicate the protocol, and we consider them unnecessary based on the results in \autoref{fig:manipulation}. Particularly with a large epoch size of 10,000 or more, the potential advantages from manipulation are very small.
