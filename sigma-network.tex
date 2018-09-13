@@ -12,9 +12,13 @@
 \usepackage{thmtools}
 \usepackage{wrapfig}
 
-\title{Sigma Network}
-\author{Daniel Lubarov\\daniel@lubarov.com}
-\date{DRAFT Version 0.1\\\today}
+% Hyperlink colors.
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    citecolor=blue,
+    urlcolor=blue,
+}
 
 % Margins around figures.
 \setlength{\intextsep}{11pt}
@@ -39,6 +43,10 @@
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
 \DeclarePairedDelimiter{\angled}{\langle}{\rangle}
 
+\title{Sigma Network}
+\author{Daniel Lubarov\\daniel@lubarov.com}
+\date{DRAFT Version 0.1\\\today}
+
 \begin{document}
 \maketitle
 
@@ -55,7 +63,7 @@
 \end{abstract}
 
 \newpage
-\tableofcontents
+{\hypersetup{hidelinks} \tableofcontents}
 \newpage
 
 \input{background}
