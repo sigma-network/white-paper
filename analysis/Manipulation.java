@@ -37,9 +37,9 @@ public class Manipulation {
     return sum;
   }
 
-  // Upper bound; doesn't account for sacrificed rewards.
   static double expectedBlockRewardsGivenBits(int blocksPerEpoch, double p, int bits) {
     // We compute the expected value by summing the probabilities of exceeding each potential value.
+    // This is Fubini's theorem + linearity of expectation.
     double sum = 0;
     for (int blockRewards = 0; blockRewards <= blocksPerEpoch; ++blockRewards) {
       sum += probOfExceeding(blockRewards, blocksPerEpoch, p, bits);
@@ -48,10 +48,17 @@ public class Manipulation {
   }
 
   static double probOfExceeding(int blockRewards, int blocksPerEpoch, double p, int bits) {
-    BigDecimal probOfNotExceeding = BinomialMath.binomialCdf(blockRewards, blocksPerEpoch, p);
-    BigInteger numSeeds = getNumSeeds(bits);
-    BigDecimal probOfNoneExceeding = pow(probOfNotExceeding, numSeeds);
-    return 1 - probOfNoneExceeding.doubleValue();
+    // TODO: Explain how I came up with the precision.
+    MathContext context = new MathContext(20);
+
+    BigDecimal probNoneExceed = new BigDecimal(1.0);
+    for (int skips = 0; skips <= bits; ++skips) {
+      BigInteger numSeedsWithSkips = BinomialMath.binomial(bits, skips);
+      BigDecimal probOfNotExceeding = BinomialMath.binomialCdf(
+          blockRewards + skips, blocksPerEpoch, p);
+      probNoneExceed = probNoneExceed.multiply(pow(probOfNotExceeding, numSeedsWithSkips), context);
+    }
+    return 1 - probNoneExceed.doubleValue();
   }
 
   static BigInteger getNumSeeds(int bits) {
@@ -69,6 +76,7 @@ public class Manipulation {
 
     // TODO: Explain how I came up with the precision.
     MathContext context = new MathContext(20);
+
     BigInteger two = BigInteger.valueOf(2);
     BigDecimal xSquared = x.multiply(x, context);
     BigInteger nDiv2 = n.divide(two);
