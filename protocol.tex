@@ -11,6 +11,8 @@ Sigma Network organizes protocol state into a blockchain structure. We use a BFT
 
 This structure has several benefits. Since blocks are committed shortly after they have propagated, transactions are confirmed very quickly, with a strong guarantee of irreversibility. Additionally, blocks can be generated as quickly as the network is able to propagate them; the BFT process eliminates the need for fixed block timing. Finally, the lack of forks makes client performance very predictable.
 
+% TODO: Explicitly define validators.
+
 A validator must register as a block creator before being eligible to create a block, and must register as a voter before being eligible to vote in the BFT consensus protocol. These registration messages are similar to transactions---they must be included in a block before they are recognized, and they may include transaction fees in order to incentivize inclusion.
 
 Each registration message has an associated score, which is pseudorandomly generated based on some account data. An account must have a certain minimum amount of stake, \texttt{DepositAmount}, in order to submit any registrations. The more stake an account has, the more registrations they may submit, each with a unique score.

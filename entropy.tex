@@ -23,7 +23,7 @@ To calculate this expected value, we start by applying Fubini's theorem with the
   &= \sum_{j=0}^{n} \left( 1 - P(r_1 \le j \text{ and } \dots \text { and } r_{2^b} \le j) \right) \\
   \intertext{We know $r_1, \dots, r_{2^b}$ are independent, since they are derived from separate random seeds, so we can separate their probabilities:}
   &= \sum_{j=0}^{n} \left( 1 - \prod_{i=0}^{2^b} P(r_i \le j) \right) \\
-  \intertext{Next, we express these probabilities in terms of the binomial CDF, $F$. We also group the seeds by $s$, the number of skipped blocks needed to select the seed. Note that $r_i \le j$ if and only if the validator receives at least $j + s$ block rewards in the next epoch, to make up for any skipped blocks.}
+  \intertext{Next, we express these probabilities in terms of the binomial CDF, $F$. We also group the seeds by $s$, the number of skipped blocks needed to select the seed. Note that $r_i \le j$ if and only if the validator receives at least $j + s$ block rewards in the next epoch, to compensate for any skipped blocks.}
   &= \sum_{j=0}^{n} \left( 1 - \prod_{s=0}^{b} \prod_{k=0}^{\binom{b}{s}} F(j + s; n, p) \right) \\
   &= \sum_{j=0}^{n} \left( 1 - \prod_{s=0}^{b} F(j + s; n, p)^{\binom{b}{s}} \right)
 \end{align*}
@@ -74,6 +74,6 @@ There are several possible ways to mitigate entropy manipulation. One option is 
 
 Another option is to use threshold signatures, such as the BLS scheme which is used by Dfinity \cite{hanke2018dfinity}. In a $(t,n)$-threshold signature scheme, the shares of at least $t$ of $n$ parties are required to create the group signature. As long as $t$ validators are honest and able to communicate with one another, the result should be impossible to manipulate.
 
-Yet another option is to pass VRF outputs through a verifiable delay function (VDF), such as the trapdoor VDF proposed by \cite{wesolowski2018efficient}, and take its output as the next epoch's seed. The idea is that validators would not have sufficient time to compute the seeds which would result from submitting or withholding a block. Under normal circumstances, the network would have moved on before the computation can be done.
+Yet another option is to pass VRF outputs through a verifiable delay function (VDF), such as the trapdoor VDF proposed by \cite{wesolowski2018efficient}, and take its output as the next epoch's seed. The idea is that validators would not have sufficient time to compute the seeds which would result from submitting or withholding a block. Under normal circumstances, the network would have moved on before the computation could be done.
 
 While these alternative schemes are academically interesting, they would complicate the protocol, and we consider them unnecessary based on the results in \autoref{fig:manipulation}. Particularly with a large epoch size of 10,000 or more, the potential advantages from manipulation are very small.
